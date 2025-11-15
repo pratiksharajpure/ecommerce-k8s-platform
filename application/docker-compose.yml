@@ -1,0 +1,151 @@
+version: '3.8'
+
+services:
+  # MySQL Database (only for full-stack profile)
+  mysql:
+    image: mysql:8.0
+    container_name: ecommerce-mysql
+    restart: unless-stopped
+    profiles: ["full-stack"]
+    environment:
+      MYSQL_ROOT_PASSWORD: Root@123
+      MYSQL_DATABASE: ecommerce_analytics
+      MYSQL_USER: ecommerce_user
+      MYSQL_PASSWORD: ecommerce_pass
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./sql:/docker-entrypoint-initdb.d:ro
+    networks:
+      - ecommerce-network
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost --silent || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 120s
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: ecommerce-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    networks:
+      - ecommerce-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: redis-server --appendonly yes
+
+  # Streamlit Application (dev mode - uses host MySQL)
+  streamlit-app-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ecommerce-streamlit-dev
+    restart: unless-stopped
+    profiles: ["dev"]
+    command: ["streamlit", "run", "Home.py", "--server.port=8501", "--server.address=0.0.0.0"]
+    ports:
+      - "8501:8501"
+    environment:
+      DB_HOST: host.docker.internal
+      DB_PORT: "3306"
+      DB_NAME: ecommerce_analytics
+      DB_USER: root
+      DB_PASSWORD: Root@123
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      APP_ENV: development
+      PYTHONUNBUFFERED: "1"
+      STREAMLIT_SERVER_HEADLESS: "true"
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - ecommerce-network
+    volumes:
+      - ./sample_data:/app/sample_data:ro
+      - ./sql:/app/sql:ro
+      - ./Home.py:/app/Home.py
+      - ./pages:/app/pages
+      - ./utils:/app/utils
+      - ./.streamlit:/app/.streamlit
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Streamlit Application (full-stack mode - uses containerized MySQL)
+  streamlit-app-prod:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ecommerce-streamlit-prod
+    restart: unless-stopped
+    profiles: ["full-stack"]
+    command: ["streamlit", "run", "Home.py", "--server.port=8501", "--server.address=0.0.0.0"]
+    ports:
+      - "8501:8501"
+    environment:
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_NAME: ecommerce_analytics
+      DB_USER: root
+      DB_PASSWORD: Root@123
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      APP_ENV: production
+      PYTHONUNBUFFERED: "1"
+      STREAMLIT_SERVER_HEADLESS: "true"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - ecommerce-network
+    volumes:
+      - ./sample_data:/app/sample_data:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # phpMyAdmin (Database Management UI)
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: ecommerce-phpmyadmin
+    restart: unless-stopped
+    profiles: ["full-stack"]
+    ports:
+      - "8080:80"
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: Root@123
+    depends_on:
+      - mysql
+    networks:
+      - ecommerce-network
+
+volumes:
+  mysql_data:
+    driver: local
+
+networks:
+  ecommerce-network:
+    driver: bridge
+    name: ecommerce_network

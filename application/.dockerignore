@@ -1,0 +1,52 @@
+# -----------------------------
+# PYTHON CACHE / BUILD FILES
+# -----------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+env/
+venv/
+ENV/
+.venv/
+.ENV/
+
+# -----------------------------
+# STREAMLIT / CONFIG FILES
+# -----------------------------
+.streamlit/secrets.toml
+.env
+*.log
+
+# -----------------------------
+# IDE / EDITOR FILES
+# -----------------------------
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.bak
+
+# -----------------------------
+# OPERATING SYSTEM FILES
+# -----------------------------
+.DS_Store
+Thumbs.db
+
+# -----------------------------
+# GIT
+# -----------------------------
+.git/
+# keep .gitignore tracked (recommended)
+# .gitignore  
+
+# -----------------------------
+# DOCUMENTATION / MISC
+# -----------------------------
+# keep README.md tracked
+# *.md
+docs/
