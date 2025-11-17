@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: dev
+  labels:
+    environment: development
+    project: ecommerce-analytics
+    maintainer: pratiksha3
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: staging
+  labels:
+    environment: staging
+    project: ecommerce-analytics
+    maintainer: pratiksha3
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: production
+  labels:
+    environment: production
+    project: ecommerce-analytics
+    maintainer: pratiksha3

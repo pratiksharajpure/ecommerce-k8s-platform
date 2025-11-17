@@ -1,0 +1,263 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql-initdb
+  namespace: dev
+data:
+  init.sql: |
+    USE ecommerce_analytics;
+    
+    -- ============================================
+    -- TABLE CREATION SECTION
+    -- ============================================
+    
+    -- Table 1: Customers
+    CREATE TABLE IF NOT EXISTS customers (
+      customer_id INT PRIMARY KEY AUTO_INCREMENT,
+      first_name VARCHAR(100),
+      last_name VARCHAR(100),
+      email VARCHAR(255) UNIQUE,
+      phone VARCHAR(20),
+      address TEXT,
+      city VARCHAR(100),
+      state VARCHAR(50),
+      country VARCHAR(50),
+      postal_code VARCHAR(20),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      INDEX idx_email (email),
+      INDEX idx_city (city)
+    );
+    
+    -- Table 2: Product Categories
+    CREATE TABLE IF NOT EXISTS product_categories (
+      category_id INT PRIMARY KEY AUTO_INCREMENT,
+      category_name VARCHAR(100) NOT NULL,
+      description TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_category_name (category_name)
+    );
+    
+    -- Table 3: Products
+    CREATE TABLE IF NOT EXISTS products (
+      product_id INT PRIMARY KEY AUTO_INCREMENT,
+      product_name VARCHAR(255) NOT NULL,
+      category_id INT,
+      subcategory VARCHAR(100),
+      brand VARCHAR(100),
+      price DECIMAL(10, 2) NOT NULL,
+      cost DECIMAL(10, 2),
+      stock_quantity INT DEFAULT 0,
+      description TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      FOREIGN KEY (category_id) REFERENCES product_categories(category_id),
+      INDEX idx_category (category_id),
+      INDEX idx_brand (brand)
+    );
+    
+    -- Table 4: Orders
+    CREATE TABLE IF NOT EXISTS orders (
+      order_id INT PRIMARY KEY AUTO_INCREMENT,
+      customer_id INT NOT NULL,
+      order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      total_amount DECIMAL(10, 2) NOT NULL,
+      status VARCHAR(50) DEFAULT 'pending',
+      payment_method VARCHAR(50),
+      shipping_address TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      FOREIGN KEY (customer_id) REFERENCES customers(customer_id),
+      INDEX idx_customer (customer_id),
+      INDEX idx_status (status),
+      INDEX idx_order_date (order_date)
+    );
+    
+    -- Table 5: Order Items
+    CREATE TABLE IF NOT EXISTS order_items (
+      order_item_id INT PRIMARY KEY AUTO_INCREMENT,
+      order_id INT NOT NULL,
+      product_id INT NOT NULL,
+      quantity INT NOT NULL,
+      unit_price DECIMAL(10, 2) NOT NULL,
+      subtotal DECIMAL(10, 2) NOT NULL,
+      FOREIGN KEY (order_id) REFERENCES orders(order_id),
+      FOREIGN KEY (product_id) REFERENCES products(product_id),
+      INDEX idx_order (order_id),
+      INDEX idx_product (product_id)
+    );
+    
+    -- Table 6: Warehouses
+    CREATE TABLE IF NOT EXISTS warehouses (
+      warehouse_id INT PRIMARY KEY AUTO_INCREMENT,
+      warehouse_name VARCHAR(100) NOT NULL,
+      location VARCHAR(255),
+      capacity INT,
+      manager_name VARCHAR(100),
+      contact_number VARCHAR(20),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_location (location)
+    );
+    
+    -- Table 7: Inventory
+    CREATE TABLE IF NOT EXISTS inventory (
+      inventory_id INT PRIMARY KEY AUTO_INCREMENT,
+      product_id INT NOT NULL,
+      warehouse_id INT NOT NULL,
+      quantity INT DEFAULT 0,
+      reorder_level INT DEFAULT 10,
+      last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      FOREIGN KEY (product_id) REFERENCES products(product_id),
+      FOREIGN KEY (warehouse_id) REFERENCES warehouses(warehouse_id),
+      INDEX idx_product (product_id),
+      INDEX idx_warehouse (warehouse_id)
+    );
+    
+    -- Table 8: Vendors
+    CREATE TABLE IF NOT EXISTS vendors (
+      vendor_id INT PRIMARY KEY AUTO_INCREMENT,
+      vendor_name VARCHAR(100) NOT NULL,
+      contact_person VARCHAR(100),
+      email VARCHAR(255),
+      phone VARCHAR(20),
+      address TEXT,
+      city VARCHAR(100),
+      country VARCHAR(50),
+      rating DECIMAL(3, 2),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_vendor_name (vendor_name)
+    );
+    
+    -- Table 9: Vendor Contracts
+    CREATE TABLE IF NOT EXISTS vendor_contracts (
+      contract_id INT PRIMARY KEY AUTO_INCREMENT,
+      vendor_id INT NOT NULL,
+      product_id INT NOT NULL,
+      contract_start_date DATE,
+      contract_end_date DATE,
+      price_per_unit DECIMAL(10, 2),
+      minimum_order_quantity INT,
+      status VARCHAR(50) DEFAULT 'active',
+      FOREIGN KEY (vendor_id) REFERENCES vendors(vendor_id),
+      FOREIGN KEY (product_id) REFERENCES products(product_id),
+      INDEX idx_vendor (vendor_id),
+      INDEX idx_product (product_id),
+      INDEX idx_status (status)
+    );
+    
+    -- Table 10: Campaigns
+    CREATE TABLE IF NOT EXISTS campaigns (
+      campaign_id INT PRIMARY KEY AUTO_INCREMENT,
+      campaign_name VARCHAR(100) NOT NULL,
+      start_date DATE,
+      end_date DATE,
+      budget DECIMAL(12, 2),
+      target_audience TEXT,
+      channel VARCHAR(50),
+      status VARCHAR(50) DEFAULT 'planned',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_campaign_name (campaign_name),
+      INDEX idx_status (status)
+    );
+    
+    -- Table 11: Loyalty Program
+    CREATE TABLE IF NOT EXISTS loyalty_program (
+      loyalty_id INT PRIMARY KEY AUTO_INCREMENT,
+      customer_id INT NOT NULL,
+      points_earned INT DEFAULT 0,
+      points_redeemed INT DEFAULT 0,
+      tier VARCHAR(50) DEFAULT 'Bronze',
+      membership_date DATE,
+      last_activity_date DATE,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      FOREIGN KEY (customer_id) REFERENCES customers(customer_id),
+      INDEX idx_customer (customer_id),
+      INDEX idx_tier (tier)
+    );
+    
+    -- ============================================
+    -- DATA INSERTION SECTION
+    -- ============================================
+    
+    -- Insert sample data for Product Categories
+    INSERT INTO product_categories (category_name, description) VALUES
+    ('Electronics', 'Electronic devices and accessories'),
+    ('Furniture', 'Home and office furniture'),
+    ('Accessories', 'Various accessories and add-ons');
+    
+    -- Insert sample customers
+    INSERT INTO customers (first_name, last_name, email, phone, city, state, country) VALUES
+    ('John', 'Doe', 'john.doe@email.com', '555-0101', 'New York', 'NY', 'USA'),
+    ('Jane', 'Smith', 'jane.smith@email.com', '555-0102', 'Los Angeles', 'CA', 'USA'),
+    ('Bob', 'Johnson', 'bob.johnson@email.com', '555-0103', 'Chicago', 'IL', 'USA'),
+    ('Alice', 'Williams', 'alice.williams@email.com', '555-0104', 'Houston', 'TX', 'USA'),
+    ('Charlie', 'Brown', 'charlie.brown@email.com', '555-0105', 'Phoenix', 'AZ', 'USA');
+    
+    -- Insert sample products
+    INSERT INTO products (product_name, category_id, brand, price, cost, stock_quantity) VALUES
+    ('Laptop Pro 15', 1, 'TechBrand', 1299.99, 899.99, 50),
+    ('Wireless Mouse', 1, 'TechBrand', 29.99, 15.99, 200),
+    ('Mechanical Keyboard', 1, 'TechBrand', 89.99, 45.99, 150),
+    ('USB-C Hub', 1, 'TechBrand', 49.99, 25.99, 100),
+    ('Laptop Bag', 3, 'StyleBrand', 39.99, 20.99, 75),
+    ('Monitor 27"', 1, 'ViewBrand', 299.99, 199.99, 30),
+    ('Webcam HD', 1, 'ViewBrand', 79.99, 39.99, 80),
+    ('Desk Lamp', 2, 'HomeBrand', 34.99, 18.99, 120),
+    ('Office Chair', 2, 'HomeBrand', 199.99, 119.99, 25),
+    ('Desk Mat', 3, 'StyleBrand', 24.99, 12.99, 150);
+    
+    -- Insert sample orders
+    INSERT INTO orders (customer_id, total_amount, status, payment_method) VALUES
+    (1, 1419.97, 'completed', 'credit_card'),
+    (2, 89.99, 'processing', 'paypal'),
+    (3, 1299.99, 'shipped', 'credit_card'),
+    (4, 364.97, 'completed', 'debit_card'),
+    (5, 79.99, 'pending', 'credit_card');
+    
+    -- Insert order items
+    INSERT INTO order_items (order_id, product_id, quantity, unit_price, subtotal) VALUES
+    (1, 1, 1, 1299.99, 1299.99),
+    (1, 3, 1, 89.99, 89.99),
+    (1, 2, 1, 29.99, 29.99),
+    (2, 3, 1, 89.99, 89.99),
+    (3, 1, 1, 1299.99, 1299.99),
+    (4, 6, 1, 299.99, 299.99),
+    (4, 7, 1, 79.99, 79.99),
+    (4, 2, 1, 29.99, 29.99),
+    (5, 7, 1, 79.99, 79.99);
+    
+    -- Insert sample warehouses
+    INSERT INTO warehouses (warehouse_name, location, capacity, manager_name, contact_number) VALUES
+    ('Main Warehouse', 'New York, NY', 10000, 'Mike Manager', '555-1001'),
+    ('West Coast Hub', 'Los Angeles, CA', 8000, 'Sarah Supervisor', '555-1002');
+    
+    -- Insert sample inventory
+    INSERT INTO inventory (product_id, warehouse_id, quantity, reorder_level) VALUES
+    (1, 1, 30, 10),
+    (1, 2, 20, 10),
+    (2, 1, 150, 50),
+    (2, 2, 50, 25);
+    
+    -- Insert sample vendors
+    INSERT INTO vendors (vendor_name, contact_person, email, phone, city, country, rating) VALUES
+    ('Tech Supplies Inc', 'Tom Vendor', 'tom@techsupplies.com', '555-2001', 'San Jose', 'USA', 4.5),
+    ('Global Electronics', 'Emma Export', 'emma@globalelec.com', '555-2002', 'Shanghai', 'China', 4.2);
+    
+    -- Insert sample vendor contracts
+    INSERT INTO vendor_contracts (vendor_id, product_id, contract_start_date, contract_end_date, price_per_unit, minimum_order_quantity, status) VALUES
+    (1, 1, '2024-01-01', '2024-12-31', 850.00, 10, 'active'),
+    (2, 2, '2024-01-01', '2024-12-31', 12.50, 100, 'active');
+    
+    -- Insert sample campaigns
+    INSERT INTO campaigns (campaign_name, start_date, end_date, budget, target_audience, channel, status) VALUES
+    ('Black Friday Sale', '2024-11-24', '2024-11-30', 50000.00, 'All customers', 'Email+Social', 'completed'),
+    ('New Year Promotion', '2025-01-01', '2025-01-15', 30000.00, 'Premium customers', 'Email', 'active');
+    
+    -- Insert sample loyalty program data
+    INSERT INTO loyalty_program (customer_id, points_earned, points_redeemed, tier, membership_date, last_activity_date) VALUES
+    (1, 1500, 500, 'Gold', '2024-01-15', '2024-11-10'),
+    (2, 500, 100, 'Silver', '2024-03-20', '2024-11-12'),
+    (3, 2500, 1000, 'Platinum', '2023-12-01', '2024-11-15'),
+    (4, 300, 50, 'Bronze', '2024-06-10', '2024-11-08'),
+    (5, 800, 200, 'Silver', '2024-02-28', '2024-11-14');
