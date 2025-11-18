@@ -1,0 +1,29 @@
+E-commerce Platform has been deployed successfully on Killercoda!
+
+Chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+Release: {{ .Release.Name }}
+Namespace: {{ .Values.namespace }}
+Environment: {{ .Values.global.environment }}
+
+═══════════════════════════════════════════════════════════════════
+
+📊 DEPLOYMENT SUMMARY:
+
+Application:
+  - Name: {{ .Values.application.name }}
+  - Replicas: {{ .Values.application.replicaCount }}
+  - Image: {{ .Values.application.image.repository }}:{{ .Values.application.image.tag }}
+
+{{- if .Values.mysql.enabled }}
+Database (MySQL):
+  - Name: {{ .Values.mysql.name }}
+  - Version: {{ .Values.mysql.image.tag }}
+  - Database: {{ .Values.mysql.auth.database }}
+  - Storage: {{ .Values.mysql.persistence.size }}
+{{- end }}
+
+{{- if .Values.redis.enabled }}
+Cache (Redis):
+  - Name: {{ .Values.redis.name }}
+  - Version: {{ .Values.redis.image.tag }}
+{{- end }}

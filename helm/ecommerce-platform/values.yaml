@@ -1,0 +1,145 @@
+# Global settings
+global:
+  environment: dev
+  imagePullPolicy: IfNotPresent
+  storageClass: local-path  # Killercoda uses local-path
+
+# Namespace configuration
+namespace: dev
+
+# Application configuration
+application:
+  name: streamlit-app
+  replicaCount: 2
+  
+  image:
+    repository: pratiksha3/ecommerce-app
+    tag: "v1.0.0"
+    pullPolicy: IfNotPresent
+  
+  service:
+    type: NodePort
+    port: 8501
+    targetPort: 8501
+    # nodePort: 30501  # Uncomment for fixed NodePort
+  
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  
+  env:
+    APP_ENV: "development"
+    LOG_LEVEL: "INFO"
+  
+  healthCheck:
+    enabled: true
+    livenessProbe:
+      path: /_stcore/health
+      initialDelaySeconds: 30
+      periodSeconds: 10
+      timeoutSeconds: 5
+    readinessProbe:
+      path: /_stcore/health
+      initialDelaySeconds: 10
+      periodSeconds: 5
+      timeoutSeconds: 3
+
+# MySQL Database configuration
+mysql:
+  enabled: true
+  name: mysql
+  replicaCount: 1
+  
+  image:
+    repository: mysql
+    tag: "8.0"
+    pullPolicy: IfNotPresent
+  
+  service:
+    type: ClusterIP
+    port: 3306
+  
+  persistence:
+    enabled: true
+    size: 10Gi
+    accessMode: ReadWriteOnce
+    storageClass: local-path  # Killercoda storage class
+  
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "500m"
+    limits:
+      memory: "2Gi"
+      cpu: "1000m"
+  
+  # Database credentials (use secrets in production)
+  auth:
+    rootPassword: "Root@123"
+    database: "ecommerce_analytics"
+    username: "ecommerce_user"
+    password: "ecommerce_pass"
+  
+  config:
+    maxConnections: 200
+    characterSet: utf8mb4
+    collation: utf8mb4_unicode_ci
+
+# Redis Cache configuration
+redis:
+  enabled: true
+  name: redis
+  replicaCount: 1
+  
+  image:
+    repository: redis
+    tag: "7-alpine"
+    pullPolicy: IfNotPresent
+  
+  service:
+    type: ClusterIP
+    port: 6379
+  
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "200m"
+
+# Ingress configuration (for future use)
+ingress:
+  enabled: false
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  hosts:
+    - host: ecommerce.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: ecommerce-tls
+      hosts:
+        - ecommerce.example.com
+
+# Monitoring configuration (for Phase 7)
+monitoring:
+  enabled: false
+  prometheus:
+    enabled: false
+  grafana:
+    enabled: false
+
+# Autoscaling configuration (for Phase 9)
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80

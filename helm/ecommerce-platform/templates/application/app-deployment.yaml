@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.application.name }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "ecommerce-platform.app.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.application.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Values.application.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.application.name }}
+        tier: frontend
+        {{- include "ecommerce-platform.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+      - name: streamlit
+        image: "{{ .Values.application.image.repository }}:{{ .Values.application.image.tag }}"
+        imagePullPolicy: {{ .Values.application.image.pullPolicy }}
+        ports:
+        - containerPort: {{ .Values.application.service.targetPort }}
+          name: http
+        env:
+        - name: MYSQL_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: MYSQL_HOST
+        - name: MYSQL_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: MYSQL_PORT
+        - name: MYSQL_DATABASE
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: MYSQL_DATABASE
+        - name: MYSQL_USER
+          valueFrom:
+            secretKeyRef:
+              name: app-secret
+              key: MYSQL_USER
+        - name: MYSQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: app-secret
+              key: MYSQL_PASSWORD
+        - name: REDIS_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: REDIS_HOST
+        - name: REDIS_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: REDIS_PORT
+        - name: APP_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: APP_ENV
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: LOG_LEVEL
+        resources:
+          {{- toYaml .Values.application.resources | nindent 10 }}
+        {{- if .Values.application.healthCheck.enabled }}
+        livenessProbe:
+          httpGet:
+            path: {{ .Values.application.healthCheck.livenessProbe.path }}
+            port: {{ .Values.application.service.targetPort }}
+          initialDelaySeconds: {{ .Values.application.healthCheck.livenessProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.application.healthCheck.livenessProbe.periodSeconds }}
+          timeoutSeconds: {{ .Values.application.healthCheck.livenessProbe.timeoutSeconds }}
+        readinessProbe:
+          httpGet:
+            path: {{ .Values.application.healthCheck.readinessProbe.path }}
+            port: {{ .Values.application.service.targetPort }}
+          initialDelaySeconds: {{ .Values.application.healthCheck.readinessProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.application.healthCheck.readinessProbe.periodSeconds }}
+          timeoutSeconds: {{ .Values.application.healthCheck.readinessProbe.timeoutSeconds }}
+        {{- end }}

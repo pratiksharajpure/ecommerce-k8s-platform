@@ -1,0 +1,41 @@
+# Staging environment overrides
+global:
+  environment: staging
+  storageClass: local-path
+
+namespace: staging
+
+application:
+  replicaCount: 2
+  
+  image:
+    tag: "v1.0.0"
+  
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  
+  env:
+    APP_ENV: "staging"
+    LOG_LEVEL: "INFO"
+
+mysql:
+  persistence:
+    size: 10Gi
+    storageClass: local-path
+  
+  auth:
+    rootPassword: "staging_root_pass"
+    password: "staging_user_pass"
+
+ingress:
+  enabled: true
+  hosts:
+    - host: staging.ecommerce.example.com
+      paths:
+        - path: /
+          pathType: Prefix

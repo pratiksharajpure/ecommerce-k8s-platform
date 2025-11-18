@@ -1,0 +1,15 @@
+﻿apiVersion: v2
+name: ecommerce-platform
+description: A Helm chart for E-commerce Analytics Platform on Kubernetes
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+
+keywords:
+  - ecommerce
+  - analytics
+  - streamlit
+
+maintainers:
+  - name: Pratiksha Rajpure
+    email: pratiksharajpure998p@gmail.com

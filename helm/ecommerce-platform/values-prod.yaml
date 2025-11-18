@@ -1,0 +1,73 @@
+# Production environment overrides
+global:
+  environment: production
+  storageClass: standard  # Use cloud provider's storage class
+
+namespace: production
+
+application:
+  replicaCount: 3  # More replicas for production
+  
+  image:
+    tag: "v1.0.0"  # Pin to specific version
+  
+  service:
+    type: LoadBalancer  # Use LoadBalancer in production
+  
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "500m"
+    limits:
+      memory: "1Gi"
+      cpu: "1000m"
+  
+  env:
+    APP_ENV: "production"
+    LOG_LEVEL: "WARNING"
+
+mysql:
+  persistence:
+    size: 50Gi  # Larger storage for production
+    storageClass: standard
+  
+  resources:
+    requests:
+      memory: "1Gi"
+      cpu: "1000m"
+    limits:
+      memory: "4Gi"
+      cpu: "2000m"
+  
+  auth:
+    rootPassword: "CHANGE_IN_PRODUCTION"
+    password: "CHANGE_IN_PRODUCTION"
+
+redis:
+  replicaCount: 2  # Redundancy in production
+  
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "200m"
+    limits:
+      memory: "512Mi"
+      cpu: "400m"
+
+ingress:
+  enabled: true
+  hosts:
+    - host: ecommerce.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: ecommerce-prod-tls
+      hosts:
+        - ecommerce.example.com
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70

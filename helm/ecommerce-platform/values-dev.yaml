@@ -1,0 +1,46 @@
+# Development environment overrides
+global:
+  environment: dev
+  storageClass: local-path
+
+namespace: dev
+
+application:
+  replicaCount: 1  # Single replica for dev
+  
+  image:
+    tag: "v1.0.0"
+  
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "250m"
+  
+  env:
+    APP_ENV: "development"
+    LOG_LEVEL: "DEBUG"
+
+mysql:
+  persistence:
+    size: 5Gi  # Smaller storage for dev
+    storageClass: local-path
+  
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "1Gi"
+      cpu: "500m"
+
+redis:
+  resources:
+    requests:
+      memory: "64Mi"
+      cpu: "50m"
+    limits:
+      memory: "128Mi"
+      cpu: "100m"

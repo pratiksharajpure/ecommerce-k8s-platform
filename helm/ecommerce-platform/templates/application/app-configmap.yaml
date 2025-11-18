@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "ecommerce-platform.app.labels" . | nindent 4 }}
+data:
+  MYSQL_HOST: "mysql-service"
+  MYSQL_PORT: {{ .Values.mysql.service.port | quote }}
+  MYSQL_DATABASE: {{ .Values.mysql.auth.database | quote }}
+  REDIS_HOST: "redis-service"
+  REDIS_PORT: {{ .Values.redis.service.port | quote }}
+  APP_ENV: {{ .Values.application.env.APP_ENV | quote }}
+  LOG_LEVEL: {{ .Values.application.env.LOG_LEVEL | quote }}
