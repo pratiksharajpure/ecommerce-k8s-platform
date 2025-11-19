@@ -19,7 +19,7 @@ permissions:
 
 env:
   DOCKER_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/ecommerce-app
-  PYTHON_VERSION: '3.12'
+  PYTHON_VERSION: '3.11'
 
 jobs:
   # Job 1: Lint and Validate
@@ -140,8 +140,6 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=registry,ref=${{ env.DOCKER_IMAGE }}:buildcache
           cache-to: type=registry,ref=${{ env.DOCKER_IMAGE }}:buildcache,mode=max
-          build-args: |
-            BUILDKIT_INLINE_CACHE=1
 
       - name: Image digest
         run: echo ${{ steps.build.outputs.digest }}
