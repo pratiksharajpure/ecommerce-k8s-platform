@@ -8,7 +8,7 @@ echo "=========================================="
 export PYTHONPATH="${PYTHONPATH}:$(pwd)/application"
 
 # Run unit tests using Windows Python
-"/c/Users/Admin/AppData/Local/Programs/Python/Python312/python.exe" -m pytest tests/unit/ -v --tb=short
+"/c/Users/Admin/AppData/Local/Programs/Python/Python312/python.exe" -m pytest unit/ -v --tb=short
 
 # Capture exit code
 TEST_EXIT_CODE=$?
