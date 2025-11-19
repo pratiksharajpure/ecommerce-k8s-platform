@@ -45,4 +45,8 @@ pillow==10.0.0
 openpyxl==3.1.2
 redis==5.0.0
 
+# Testing
+pytest==7.4.0
+pytest-cov==4.1.0
+
 
