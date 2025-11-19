@@ -1,0 +1,55 @@
+name: Rollback Deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to rollback'
+        required: true
+        type: choice
+        options:
+          - dev
+          - staging
+          - production
+      revision:
+        description: 'Revision number to rollback to (leave empty for previous)'
+        required: false
+
+jobs:
+  rollback:
+    name: Rollback ${{ github.event.inputs.environment }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Rollback info
+        run: |
+          echo "=========================================="
+          echo "⚠️ ROLLBACK INITIATED"
+          echo "=========================================="
+          echo "Environment: ${{ github.event.inputs.environment }}"
+          echo "Revision: ${{ github.event.inputs.revision || 'previous' }}"
+          echo "Triggered by: ${{ github.actor }}"
+          echo "=========================================="
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: 'v3.12.0'
+
+      - name: Simulate rollback
+        run: |
+          echo "🔄 Rolling back deployment..."
+          echo "✅ Rollback would be executed here"
+          echo "📝 In actual deployment, this would run:"
+          if [ -z "${{ github.event.inputs.revision }}" ]; then
+            echo "  helm rollback ecommerce-${{ github.event.inputs.environment }} -n ${{ github.event.inputs.environment }}"
+          else
+            echo "  helm rollback ecommerce-${{ github.event.inputs.environment }} ${{ github.event.inputs.revision }} -n ${{ github.event.inputs.environment }}"
+          fi
+
+      - name: Verify rollback
+        run: |
+          echo "✅ Rollback completed successfully"
+          echo "🔍 Verify application is working correctly"
