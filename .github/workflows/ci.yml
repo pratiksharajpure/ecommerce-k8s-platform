@@ -12,7 +12,7 @@ on:
       - develop
 
 env:
-  DOCKER_IMAGE: pratiksharajpure/ecommerce-app
+  DOCKER_IMAGE: pratiksha3/ecommerce-app
   PYTHON_VERSION: '3.11'
 
 jobs:
