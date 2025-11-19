@@ -147,7 +147,7 @@ jobs:
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ env.DOCKER_IMAGE }}:${{ github.sha }}
+          image-ref: ${{ env.DOCKER_IMAGE }}:latest
           format: 'table'
           exit-code: '0'
           ignore-unfixed: true
@@ -157,7 +157,7 @@ jobs:
       - name: Run Trivy in GitHub Security mode
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ env.DOCKER_IMAGE }}:${{ github.sha }}
+          image-ref: ${{ env.DOCKER_IMAGE }}:latest
           format: 'sarif'
           output: 'trivy-image-results.sarif'
         continue-on-error: true
