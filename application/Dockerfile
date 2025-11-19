@@ -2,8 +2,13 @@
 FROM python:3.12-slim AS builder
 WORKDIR /app
 
+# Install build dependencies (versions locked via apt-cache during build)
+# hadolint ignore=DL3008
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc g++ default-libmysqlclient-dev pkg-config \
+    gcc \
+    g++ \
+    default-libmysqlclient-dev \
+    pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
@@ -14,8 +19,11 @@ RUN pip install --no-cache-dir --user -r requirements.txt
 FROM python:3.12-slim
 WORKDIR /app
 
+# Install runtime dependencies (versions locked via apt-cache during build)
+# hadolint ignore=DL3008
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    default-libmysqlclient-dev curl \
+    default-libmysqlclient-dev \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy Python packages from builder
