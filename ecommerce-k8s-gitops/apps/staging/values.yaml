@@ -1,0 +1,49 @@
+﻿# Staging Environment Values
+# Optimized for Killercoda
+
+global:
+  environment: staging
+  imagePullPolicy: IfNotPresent
+  namespace: staging
+  storageClass: local-path
+
+application:
+  name: streamlit-app
+  replicaCount: 2
+  image:
+    repository: pratiksha3/ecommerce-app
+    tag: "v1.0.0"
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+
+mysql:
+  enabled: true
+  persistence:
+    size: 10Gi
+    storageClass: local-path
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "500m"
+    limits:
+      memory: "2Gi"
+      cpu: "1000m"
+
+redis:
+  enabled: true
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "200m"
+
+ingress:
+  enabled: false

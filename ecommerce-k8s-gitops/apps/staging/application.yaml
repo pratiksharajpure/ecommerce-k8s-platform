@@ -1,0 +1,40 @@
+﻿apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ecommerce-staging
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/pratiksharajpure/ecommerce-k8s-platform.git
+    targetRevision: main
+    path: helm/ecommerce-platform
+    helm:
+      valueFiles:
+        - values-staging.yaml
+      values: |
+        global:
+          environment: staging
+          storageClass: local-path
+        application:
+          image:
+            tag: "v1.0.0"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: staging
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10

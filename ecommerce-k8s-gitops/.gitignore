@@ -1,0 +1,17 @@
+﻿# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Temporary files
+*.tmp
+*.log
+
+# Secrets (should never be committed)
+*secret*.yaml
+*password*.yaml

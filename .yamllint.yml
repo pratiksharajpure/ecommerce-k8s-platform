@@ -12,3 +12,4 @@ rules:
   document-start: disable
   truthy:
     allowed-values: ['true', 'false', 'yes', 'no']
+

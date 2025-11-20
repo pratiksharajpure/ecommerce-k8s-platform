@@ -1,0 +1,59 @@
+﻿# Production Environment Values
+# For actual production deployment (not Killercoda)
+
+global:
+  environment: production
+  imagePullPolicy: IfNotPresent
+  namespace: production
+  storageClass: standard
+
+application:
+  name: streamlit-app
+  replicaCount: 3
+  image:
+    repository: pratiksha3/ecommerce-app
+    tag: "v1.0.0"
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "500m"
+    limits:
+      memory: "1Gi"
+      cpu: "1000m"
+
+mysql:
+  enabled: true
+  persistence:
+    size: 50Gi
+    storageClass: standard
+  resources:
+    requests:
+      memory: "1Gi"
+      cpu: "1000m"
+    limits:
+      memory: "4Gi"
+      cpu: "2000m"
+  auth:
+    rootPassword: "CHANGE_IN_PRODUCTION"
+    password: "CHANGE_IN_PRODUCTION"
+
+redis:
+  enabled: true
+  replicaCount: 2
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "200m"
+    limits:
+      memory: "512Mi"
+      cpu: "400m"
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+
+ingress:
+  enabled: false

@@ -1,0 +1,36 @@
+﻿apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ecommerce-production
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/pratiksharajpure/ecommerce-k8s-platform.git
+    targetRevision: main
+    path: helm/ecommerce-platform
+    helm:
+      valueFiles:
+        - values-prod.yaml
+      values: |
+        global:
+          environment: production
+        application:
+          image:
+            tag: "v1.0.0"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: production
+  syncPolicy:
+    automated: null
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 5m
+  revisionHistoryLimit: 20
