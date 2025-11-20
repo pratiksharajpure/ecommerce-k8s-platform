@@ -1,4 +1,12 @@
 name: CI - Build and Test
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+  checks: write
+  pull-requests: write
+  id-token: write
+
 
 on:
   push:
