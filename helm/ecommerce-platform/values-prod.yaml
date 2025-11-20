@@ -1,19 +1,16 @@
 # Production environment overrides
 global:
   environment: production
-  storageClass: standard  # Use cloud provider's storage class
+  storageClass: local-path  # Fixed for Killercoda cluster
 
 namespace: production
 
 application:
-  replicaCount: 3  # More replicas for production
-  
+  replicaCount: 3
   image:
-    tag: "v1.0.0"  # Pin to specific version
-  
+    tag: "v1.0.0"
   service:
-    type: LoadBalancer  # Use LoadBalancer in production
-  
+    type: LoadBalancer
   resources:
     requests:
       memory: "512Mi"
@@ -21,16 +18,14 @@ application:
     limits:
       memory: "1Gi"
       cpu: "1000m"
-  
   env:
     APP_ENV: "production"
     LOG_LEVEL: "WARNING"
 
 mysql:
   persistence:
-    size: 50Gi  # Larger storage for production
-    storageClass: standard
-  
+    size: 50Gi
+    storageClass: local-path  # Fixed
   resources:
     requests:
       memory: "1Gi"
@@ -38,14 +33,12 @@ mysql:
     limits:
       memory: "4Gi"
       cpu: "2000m"
-  
   auth:
     rootPassword: "CHANGE_IN_PRODUCTION"
     password: "CHANGE_IN_PRODUCTION"
 
 redis:
-  replicaCount: 2  # Redundancy in production
-  
+  replicaCount: 2
   resources:
     requests:
       memory: "256Mi"
