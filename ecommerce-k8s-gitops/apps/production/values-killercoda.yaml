@@ -1,0 +1,60 @@
+# Production Environment Values - KILLERCODA VERSION
+# Reduced resources for Killercoda testing
+
+global:
+  environment: production
+  imagePullPolicy: IfNotPresent
+  namespace: production
+  storageClass: local-path  # Killercoda storage class
+
+application:
+  name: streamlit-app
+  replicaCount: 1  # Reduced from 3
+  image:
+    repository: pratiksha3/ecommerce-app
+    tag: "v1.0.0"
+    pullPolicy: IfNotPresent
+  
+  resources:
+    requests:
+      memory: "128Mi"  # Reduced from 512Mi
+      cpu: "100m"      # Reduced from 500m
+    limits:
+      memory: "256Mi"  # Reduced from 1Gi
+      cpu: "250m"      # Reduced from 1000m
+
+mysql:
+  enabled: true
+  persistence:
+    size: 5Gi          # Reduced from 50Gi
+    storageClass: local-path  # Changed from standard
+  
+  resources:
+    requests:
+      memory: "256Mi"  # Reduced from 1Gi
+      cpu: "250m"      # Reduced from 1000m
+    limits:
+      memory: "512Mi"  # Reduced from 4Gi
+      cpu: "500m"      # Reduced from 2000m
+  
+  auth:
+    rootPassword: "testpassword123"
+    password: "testpassword123"
+
+redis:
+  enabled: true
+  replicaCount: 1  # Reduced from 2
+  
+  resources:
+    requests:
+      memory: "64Mi"   # Reduced from 256Mi
+      cpu: "50m"       # Reduced from 200m
+    limits:
+      memory: "128Mi"  # Reduced from 512Mi
+      cpu: "100m"      # Reduced from 400m
+
+autoscaling:
+  enabled: false  # Disabled for Killercoda
+
+ingress:
+  enabled: false

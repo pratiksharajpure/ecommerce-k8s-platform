@@ -24,8 +24,8 @@ application:
 
 mysql:
   persistence:
-    size: 50Gi
-    storageClass: local-path  # Fixed
+    size: 5Gi
+    storageClass: local-path
   resources:
     requests:
       memory: "1Gi"
@@ -36,6 +36,8 @@ mysql:
   auth:
     rootPassword: "CHANGE_IN_PRODUCTION"
     password: "CHANGE_IN_PRODUCTION"
+  nodeSelector:
+    kubernetes.io/hostname: controlplane
 
 redis:
   replicaCount: 2

@@ -7,23 +7,63 @@ metadata:
     - resources-finalizer.argocd.argoproj.io
 spec:
   project: default
+  
   source:
     repoURL: https://github.com/pratiksharajpure/ecommerce-k8s-platform.git
     targetRevision: main
     path: helm/ecommerce-platform
     helm:
       valueFiles:
-        - values-prod.yaml
+        - values-prod.yaml  # Base production values
       values: |
         global:
           environment: production
+          storageClass: local-path  # Killercoda storage
+        
+        # KILLERCODA-OPTIMIZED VALUES
         application:
+          replicaCount: 1
           image:
             tag: "v1.0.0"
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "250m"
+        
+        mysql:
+          persistence:
+            size: 5Gi
+            storageClass: local-path
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+        
+        redis:
+          replicaCount: 1
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "128Mi"
+              cpu: "100m"
+        
+        autoscaling:
+          enabled: false
+  
   destination:
     server: https://kubernetes.default.svc
     namespace: production
+  
   syncPolicy:
+    # Manual sync for production
     automated: null
     syncOptions:
       - CreateNamespace=true
@@ -33,4 +73,5 @@ spec:
         duration: 10s
         factor: 2
         maxDuration: 5m
+  
   revisionHistoryLimit: 20
