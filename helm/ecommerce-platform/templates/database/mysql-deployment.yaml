@@ -70,16 +70,8 @@ spec:
           periodSeconds: 10
           timeoutSeconds: 5
         readinessProbe:
-          exec:
-            command:
-            - mysql
-            - -h
-            - localhost
-            - -u
-            - root
-            - -p{{ .Values.mysql.auth.rootPassword }}
-            - -e
-            - SELECT 1
+          tcpSocket:
+            port: {{ .Values.mysql.service.port }}
           initialDelaySeconds: 10
           periodSeconds: 5
           timeoutSeconds: 2
