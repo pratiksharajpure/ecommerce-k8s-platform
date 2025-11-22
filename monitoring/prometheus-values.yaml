@@ -1,97 +1,56 @@
-﻿# Prometheus Stack Configuration for Killercoda
-# Values for kube-prometheus-stack Helm chart
-# Optimized for Killercoda resource constraints
-
-# Prometheus Operator
-prometheusOperator:
-  enabled: true
-  resources:
-    requests:
-      cpu: 50m       # Reduced for Killercoda
-      memory: 64Mi   # Reduced for Killercoda
-    limits:
-      cpu: 100m
-      memory: 128Mi
-
-# Prometheus Server
-prometheus:
+﻿prometheus:
   enabled: true
   prometheusSpec:
-    # Retention period (reduced for Killercoda)
-    retention: 7d           # Reduced from 15d for Killercoda
-    retentionSize: "5GB"    # Reduced from 10GB for Killercoda
-    
-    # Resource limits (optimized for Killercoda)
+    retention: 7d
+    retentionSize: "5GB"
     resources:
       requests:
-        cpu: 250m      # Reduced for Killercoda
-        memory: 512Mi  # Reduced for Killercoda
+        cpu: 250m
+        memory: 512Mi
       limits:
-        cpu: 500m      # Reduced for Killercoda
-        memory: 1Gi    # Reduced for Killercoda
-    
-    # Storage (using Killercoda's local-path)
+        cpu: 500m
+        memory: 1Gi
     storageSpec:
       volumeClaimTemplate:
         spec:
-          storageClassName: local-path  # Killercoda storage class
+          storageClassName: local-path
           accessModes: ["ReadWriteOnce"]
           resources:
             requests:
-              storage: 10Gi  # Reduced from 20Gi for Killercoda
-    
-    # Service monitors to discover
+              storage: 10Gi
     serviceMonitorSelectorNilUsesHelmValues: false
     podMonitorSelectorNilUsesHelmValues: false
-    
-    # Scrape interval
     scrapeInterval: 15s
     evaluationInterval: 15s
-    
-    # External labels
     externalLabels:
-      cluster: killercoda      # Changed from minikube
+      cluster: killercoda
       environment: dev
 
-# Grafana
 grafana:
   enabled: true
+  adminPassword: admin123
   
-  # Admin credentials
-  adminPassword: admin123  # CHANGE IN PRODUCTION!
+  # CRITICAL: Explicitly disable datasource sidecar
+  sidecar:
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+    datasources:
+      enabled: false
+      defaultDatasourceEnabled: false
   
-  # Persistence (using Killercoda storage)
-  persistence:
-    enabled: true
-    storageClassName: local-path  # Killercoda storage class
-    size: 2Gi  # Reduced from 5Gi for Killercoda
-  
-  # Resources (optimized for Killercoda)
-  resources:
-    requests:
-      cpu: 50m       # Reduced for Killercoda
-      memory: 64Mi   # Reduced for Killercoda
-    limits:
-      cpu: 100m
-      memory: 128Mi
-  
-  # Service type (ClusterIP for port-forward access)
-  service:
-    type: ClusterIP  # Changed from NodePort for Killercoda
-    port: 80
-  
-  # Datasources
+  # Manual datasource configuration
   datasources:
     datasources.yaml:
       apiVersion: 1
       datasources:
         - name: Prometheus
           type: prometheus
-          url: http://prometheus-operated:9090
+          url: http://prometheus-kube-prometheus-prometheus.monitoring.svc:9090
           access: proxy
           isDefault: true
+          editable: true
   
-  # Dashboard providers
   dashboardProviders:
     dashboardproviders.yaml:
       apiVersion: 1
@@ -105,91 +64,86 @@ grafana:
           options:
             path: /var/lib/grafana/dashboards/default
   
-  # Pre-installed dashboards
   dashboards:
     default:
-      # Kubernetes cluster monitoring
       kubernetes-cluster:
         gnetId: 7249
         revision: 1
         datasource: Prometheus
-      
-      # Node exporter
       node-exporter:
         gnetId: 1860
         revision: 27
         datasource: Prometheus
-      
-      # Kubernetes pods
       kubernetes-pods:
         gnetId: 6417
         revision: 1
         datasource: Prometheus
+  
+  persistence:
+    enabled: true
+    storageClassName: local-path
+    size: 2Gi
+  
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi
+  
+  service:
+    type: ClusterIP
+    port: 80
 
-# AlertManager
 alertmanager:
   enabled: true
   alertmanagerSpec:
-    # Resources (optimized for Killercoda)
     resources:
       requests:
-        cpu: 25m      # Reduced for Killercoda
-        memory: 32Mi  # Reduced for Killercoda
+        cpu: 25m
+        memory: 32Mi
       limits:
         cpu: 50m
         memory: 64Mi
-    
-    # Storage (using Killercoda storage)
     storage:
       volumeClaimTemplate:
         spec:
-          storageClassName: local-path  # Killercoda storage class
+          storageClassName: local-path
           accessModes: ["ReadWriteOnce"]
           resources:
             requests:
-              storage: 1Gi  # Reduced from 2Gi for Killercoda
-  
-  # AlertManager configuration
-  config:
-    global:
-      resolve_timeout: 5m
-    
-    route:
-      group_by: ['alertname', 'cluster', 'service']
-      group_wait: 10s
-      group_interval: 10s
-      repeat_interval: 12h
-      receiver: 'null'
-      routes:
-        - match:
-            alertname: Watchdog
-          receiver: 'null'
-        - match:
-            severity: critical
-          receiver: 'critical-alerts'
-        - match:
-            severity: warning
-          receiver: 'warning-alerts'
-    
-    receivers:
-      - name: 'null'
-      - name: 'critical-alerts'
-        # Add your notification channels here
-        # webhook_configs:
-        #   - url: 'http://your-webhook-url'
-      - name: 'warning-alerts'
-        # webhook_configs:
-        #   - url: 'http://your-webhook-url'
+              storage: 1Gi
+    config:
+      global:
+        resolve_timeout: 5m
+      route:
+        group_by: ['alertname', 'cluster', 'service']
+        group_wait: 10s
+        group_interval: 10s
+        repeat_interval: 12h
+        receiver: 'null'
+        routes:
+          - match:
+              alertname: Watchdog
+            receiver: 'null'
+          - match:
+              severity: critical
+            receiver: 'critical-alerts'
+          - match:
+              severity: warning
+            receiver: 'warning-alerts'
+      receivers:
+        - name: 'null'
+        - name: 'critical-alerts'
+        - name: 'warning-alerts'
 
-# Node Exporter
 nodeExporter:
   enabled: true
 
-# Kube State Metrics
 kubeStateMetrics:
   enabled: true
 
-# Default rules
 defaultRules:
   create: true
   rules:
