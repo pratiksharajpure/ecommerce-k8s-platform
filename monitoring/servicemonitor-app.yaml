@@ -1,0 +1,21 @@
+﻿apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: streamlit-app-monitor
+  namespace: dev
+  labels:
+    app: streamlit-app
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: streamlit-app
+  endpoints:
+    - port: http
+      interval: 15s
+      path: /metrics
+  namespaceSelector:
+    matchNames:
+      - dev
+      - staging
+      - production

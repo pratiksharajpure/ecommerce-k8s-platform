@@ -2,6 +2,7 @@
 📊 Dashboard - Main Overview Page (Home.py)
 Works with SQL, CSV, or Sample Data - Auto-detects and uses the best available source
 FIXED VERSION - All data type issues resolved
+NOW WITH PROMETHEUS METRICS SUPPORT
 """
 
 import streamlit as st
@@ -11,6 +12,15 @@ from datetime import datetime, timedelta
 import numpy as np
 from pathlib import Path
 import traceback
+import time
+
+# Prometheus metrics imports
+try:
+    from prometheus_client import Counter, Histogram, Gauge, generate_latest, REGISTRY
+    PROMETHEUS_ENABLED = True
+except ImportError:
+    PROMETHEUS_ENABLED = False
+    print("Warning: prometheus_client not installed. Metrics disabled.")
 
 # Enable debug mode
 DEBUG_MODE = True
@@ -23,9 +33,77 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# ===========================
+# PROMETHEUS METRICS SETUP
+# ===========================
+
+if PROMETHEUS_ENABLED:
+    # Page view counter
+    page_views = Counter(
+        'streamlit_page_views_total',
+        'Total page views by page',
+        ['page']
+    )
+    
+    # Request duration histogram
+    request_duration = Histogram(
+        'streamlit_request_duration_seconds',
+        'Request duration in seconds',
+        ['page']
+    )
+    
+    # Active users gauge
+    active_users = Gauge(
+        'streamlit_active_users',
+        'Number of active users'
+    )
+    
+    # Database connection status
+    db_status = Gauge(
+        'streamlit_db_status',
+        'Database connection status (1=connected, 0=disconnected)'
+    )
+    
+    # Data load errors counter
+    errors_total = Counter(
+        'streamlit_errors_total',
+        'Total application errors',
+        ['error_type']
+    )
+    
+    # Business metrics
+    total_revenue = Gauge(
+        'ecommerce_total_revenue',
+        'Total revenue'
+    )
+    
+    total_orders = Gauge(
+        'ecommerce_total_orders',
+        'Total number of orders'
+    )
+    
+    total_customers = Gauge(
+        'ecommerce_total_customers',
+        'Total number of customers'
+    )
+    
+    # Track page view for home page
+    page_views.labels(page='home').inc()
+    active_users.set(1)
+    
+    # Metrics endpoint function
+    @st.cache_resource
+    def get_metrics():
+        """Generate Prometheus metrics in text format"""
+        return generate_latest(REGISTRY).decode('utf-8')
+
 # Show startup message
 if DEBUG_MODE:
     st.sidebar.success("🔧 Debug Mode: ON")
+    if PROMETHEUS_ENABLED:
+        st.sidebar.success("📊 Prometheus: Enabled")
+    else:
+        st.sidebar.warning("📊 Prometheus: Disabled")
     st.sidebar.caption(f"Started: {datetime.now().strftime('%H:%M:%S')}")
 
 # Custom CSS
@@ -210,6 +288,7 @@ def load_data_smart():
     2. SQL Database 
     3. Sample Data (fallback)
     """
+    load_start_time = time.time()
     data = {}
     source = "Sample Data (Generated)"
     csv_loaded = 0
@@ -249,6 +328,8 @@ def load_data_smart():
                         csv_loaded += 1
                         
                 except Exception as e:
+                    if PROMETHEUS_ENABLED:
+                        errors_total.labels(error_type='csv_load').inc()
                     csv_errors.append(f"{table}: {str(e)[:50]}")
                     continue
         
@@ -256,10 +337,18 @@ def load_data_smart():
         if csv_loaded >= 3:  # At least 3 core tables
             source = f"CSV Files ({csv_loaded} files loaded)"
             
+            if PROMETHEUS_ENABLED:
+                db_status.set(1)
+            
             if csv_errors:
                 with st.sidebar.expander("⚠️ Some files had issues", expanded=False):
                     for err in csv_errors:
                         st.caption(f"• {err}")
+            
+            # Track load duration
+            load_duration = time.time() - load_start_time
+            if PROMETHEUS_ENABLED:
+                request_duration.labels(page='data_load').observe(load_duration)
             
             return data, source
         
@@ -291,9 +380,16 @@ def load_data_smart():
                 
                 if sql_loaded > 0:
                     source = f"MySQL Database ({sql_loaded} tables)"
+                    if PROMETHEUS_ENABLED:
+                        db_status.set(1)
                     return data, source
-        except:
-            pass
+            
+            if PROMETHEUS_ENABLED:
+                db_status.set(0)
+        except Exception as e:
+            if PROMETHEUS_ENABLED:
+                errors_total.labels(error_type='db_connection').inc()
+                db_status.set(0)
         
         # TRY Generate Sample Data (last resort)
         if len(data) == 0:
@@ -301,14 +397,23 @@ def load_data_smart():
                 st.sidebar.warning("⚠️ Using Generated Sample Data")
             data = generate_sample_data()
             source = "Generated Sample Data"
+            if PROMETHEUS_ENABLED:
+                db_status.set(0)
     
     except Exception as e:
         if DEBUG_MODE:
             st.sidebar.error(f"❌ Load Error: {str(e)}")
             st.sidebar.code(traceback.format_exc())
+        if PROMETHEUS_ENABLED:
+            errors_total.labels(error_type='general_load').inc()
         # Return sample data as absolute fallback
         data = generate_sample_data()
         source = "Generated Sample Data (Fallback)"
+    
+    # Track load duration
+    load_duration = time.time() - load_start_time
+    if PROMETHEUS_ENABLED:
+        request_duration.labels(page='data_load').observe(load_duration)
     
     return data, source
 
@@ -376,14 +481,25 @@ def calculate_dashboard_metrics(data, date_range_days=90):
                             ((metrics['orders'] - prev_orders) / prev_orders * 100) 
                             if prev_orders > 0 else 0
                         )
+                        
+                        # Update Prometheus metrics
+                        if PROMETHEUS_ENABLED:
+                            total_revenue.set(metrics['revenue'])
+                            total_orders.set(metrics['orders'])
             except Exception as e:
                 if DEBUG_MODE:
                     st.sidebar.error(f"❌ Error processing orders: {str(e)[:80]}")
+                if PROMETHEUS_ENABLED:
+                    errors_total.labels(error_type='metrics_calculation').inc()
     
     # Customers metrics
     if 'customers' in data and len(data['customers']) > 0:
         metrics['total_customers'] = len(data['customers'])
         metrics['new_customers'] = len(data['customers']) // 10
+        
+        # Update Prometheus metrics
+        if PROMETHEUS_ENABLED:
+            total_customers.set(metrics['total_customers'])
     
     # Products metrics - FIXED
     if 'products' in data and len(data['products']) > 0:
@@ -444,6 +560,8 @@ try:
 except Exception as e:
     st.error(f"❌ Critical Error Loading Data: {str(e)}")
     st.code(traceback.format_exc())
+    if PROMETHEUS_ENABLED:
+        errors_total.labels(error_type='critical_load').inc()
     st.stop()
 
 # ===========================
@@ -468,6 +586,15 @@ with st.sidebar:
                 st.caption(f"✅ **{table}** ({row_count:,} rows)")
     else:
         st.warning("⚠️ No data loaded - check your database/CSV files")
+    
+    st.markdown("---")
+    
+    # Prometheus Metrics Viewer
+    if PROMETHEUS_ENABLED:
+        with st.expander("📊 Prometheus Metrics", expanded=False):
+            if st.button("🔄 Refresh Metrics", use_container_width=True):
+                st.code(get_metrics(), language="text")
+            st.caption("Metrics endpoint for Prometheus scraping")
     
     st.markdown("---")
     st.markdown("### 🎯 Filters")
@@ -497,7 +624,8 @@ metrics = calculate_dashboard_metrics(data, date_range_days)
 col1, col2 = st.columns([3, 1])
 with col1:
     st.title("📊 Dashboard Overview")
-    st.markdown(f"**Real-time e-commerce analytics** • Source: **{source_used}** • {datetime.now().strftime('%H:%M:%S')}")
+    metrics_status = "📊 Prometheus Enabled" if PROMETHEUS_ENABLED else ""
+    st.markdown(f"**Real-time e-commerce analytics** • Source: **{source_used}** • {datetime.now().strftime('%H:%M:%S')} {metrics_status}")
 with col2:
     if st.button("📥 Export", use_container_width=True):
         st.success("✅ Export started!")
@@ -603,6 +731,8 @@ with col1:
                     st.info("📊 Order data has invalid dates")
             except Exception as e:
                 st.error(f"📊 Chart error: {str(e)[:100]}")
+                if PROMETHEUS_ENABLED:
+                    errors_total.labels(error_type='chart_render').inc()
         else:
             st.info("📊 Order data missing required columns")
     else:
@@ -675,6 +805,8 @@ with col1:
                     st.info("📦 No valid product price data")
             except Exception as e:
                 st.error(f"📦 Chart error: {str(e)[:100]}")
+                if PROMETHEUS_ENABLED:
+                    errors_total.labels(error_type='chart_render').inc()
         else:
             st.info("📦 Product data missing price/name columns")
     else:
@@ -705,6 +837,8 @@ with col2:
                 st.plotly_chart(fig, use_container_width=True)
             except Exception as e:
                 st.error(f"👥 Chart error: {str(e)[:100]}")
+                if PROMETHEUS_ENABLED:
+                    errors_total.labels(error_type='chart_render').inc()
         else:
             st.info("👥 No country column found")
     else:
@@ -737,7 +871,10 @@ with col3:
     st.success(f"**⭐ Customer Satisfaction**\n\nRating: {metrics.get('avg_rating', 4.2):.1f}/5.0")
 
 st.markdown("---")
+
+# Footer with Prometheus status
+prom_status = "📊 Prometheus Metrics: Enabled" if PROMETHEUS_ENABLED else "📊 Prometheus Metrics: Disabled"
 st.caption(f"""
-📊 Dashboard v2.0 | {source_used} | {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | 
-{metrics.get('total_customers', 0):,} customers • {metrics.get('total_products', 0):,} products • {metrics.get('orders', 0):,} orders
+📊 Dashboard v2.1 (with Prometheus) | {source_used} | {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | 
+{metrics.get('total_customers', 0):,} customers • {metrics.get('total_products', 0):,} products • {metrics.get('orders', 0):,} orders | {prom_status}
 """)

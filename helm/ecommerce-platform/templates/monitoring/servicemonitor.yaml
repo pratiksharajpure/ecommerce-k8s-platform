@@ -1,0 +1,21 @@
+﻿{{- if .Values.monitoring.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ .Values.application.name }}-monitor
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "ecommerce-platform.app.labels" . | nindent 4 }}
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: {{ .Values.application.name }}
+  endpoints:
+    - port: http
+      interval: {{ .Values.monitoring.scrapeInterval }}
+      path: {{ .Values.monitoring.metricsPath }}
+  namespaceSelector:
+    matchNames:
+      - {{ .Values.namespace }}
+{{- end }}

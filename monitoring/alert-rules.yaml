@@ -1,0 +1,135 @@
+﻿apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: ecommerce-alerts
+  namespace: monitoring
+  labels:
+    prometheus: kube-prometheus
+    role: alert-rules
+spec:
+  groups:
+    - name: ecommerce-app
+      interval: 30s
+      rules:
+        # High CPU Usage
+        - alert: HighCPUUsage
+          expr: |
+            rate(container_cpu_usage_seconds_total{namespace="dev",pod=~"streamlit.*"}[5m]) > 0.8
+          for: 5m
+          labels:
+            severity: warning
+            component: application
+          annotations:
+            summary: "High CPU usage detected"
+            description: "Pod {{ $labels.pod }} CPU usage is above 80% for 5 minutes"
+        
+        # High Memory Usage
+        - alert: HighMemoryUsage
+          expr: |
+            container_memory_usage_bytes{namespace="dev",pod=~"streamlit.*"} / container_spec_memory_limit_bytes > 0.85
+          for: 5m
+          labels:
+            severity: warning
+            component: application
+          annotations:
+            summary: "High memory usage detected"
+            description: "Pod {{ $labels.pod }} memory usage is above 85%"
+        
+        # Pod Restarts
+        - alert: PodRestartingTooOften
+          expr: |
+            rate(kube_pod_container_status_restarts_total{namespace="dev"}[15m]) > 0
+          for: 5m
+          labels:
+            severity: critical
+            component: kubernetes
+          annotations:
+            summary: "Pod restarting frequently"
+            description: "Pod {{ $labels.pod }} has restarted {{ $value }} times in last 15 minutes"
+        
+        # Application Down
+        - alert: ApplicationDown
+          expr: |
+            up{job="streamlit-app"} == 0
+          for: 2m
+          labels:
+            severity: critical
+            component: application
+          annotations:
+            summary: "Application is down"
+            description: "Streamlit application {{ $labels.instance }} is down"
+        
+        # Database Connection Issues
+        - alert: DatabaseConnectionHigh
+          expr: |
+            mysql_global_status_threads_connected > 150
+          for: 5m
+          labels:
+            severity: warning
+            component: database
+          annotations:
+            summary: "High number of database connections"
+            description: "MySQL has {{ $value }} connections (threshold: 150)"
+        
+        # Redis Memory High
+        - alert: RedisMemoryHigh
+          expr: |
+            redis_memory_used_bytes / redis_memory_max_bytes > 0.9
+          for: 5m
+          labels:
+            severity: warning
+            component: cache
+          annotations:
+            summary: "Redis memory usage high"
+            description: "Redis memory usage is above 90%"
+        
+        # Low Disk Space (Killercoda specific)
+        - alert: LowDiskSpace
+          expr: |
+            (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) < 0.15
+          for: 10m
+          labels:
+            severity: warning
+            component: infrastructure
+          annotations:
+            summary: "Low disk space on Killercoda node"
+            description: "Disk space is below 15% on {{ $labels.instance }}"
+        
+        # High Error Rate
+        - alert: HighErrorRate
+          expr: |
+            rate(streamlit_errors_total[5m]) > 0.1
+          for: 5m
+          labels:
+            severity: critical
+            component: application
+          annotations:
+            summary: "High application error rate"
+            description: "Error rate is {{ $value }} per second"
+    
+    - name: ecommerce-business
+      interval: 1m
+      rules:
+        # Low Traffic Alert
+        - alert: LowTrafficAlert
+          expr: |
+            rate(streamlit_page_views_total[10m]) < 0.001
+          for: 15m
+          labels:
+            severity: info
+            component: business
+          annotations:
+            summary: "Low user traffic detected"
+            description: "Page views are unusually low"
+        
+        # No Orders
+        - alert: NoOrdersAlert
+          expr: |
+            increase(orders_total[30m]) == 0
+          for: 30m
+          labels:
+            severity: warning
+            component: business
+          annotations:
+            summary: "No orders in last 30 minutes"
+            description: "Check if the order system is working"
